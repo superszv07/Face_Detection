@@ -1,0 +1,28 @@
+import cv2
+import numpy as np
+import face_recognition
+import os
+imgShah = face_recognition.load_image_file("imagesource/shahbaz_58.jpg")
+imgShah = cv2.cvtColor(imgShah,cv2.COLOR_BGR2RGB)
+imgTest = face_recognition.load_image_file("imagesource/shahbaz_58_test.jpg")
+imgTest = cv2.cvtColor(imgTest, cv2.COLOR_BGR2RGB)
+
+face_Loc = face_recognition.face_locations(imgShah)[0]
+encodeShah = face_recognition.face_encodings(imgShah)[0]
+cv2.rectangle(imgShah,(face_Loc[3],face_Loc[0]),(face_Loc[1],face_Loc[2]),(255,0,255),2)
+
+face_Loc_Test = face_recognition.face_locations(imgTest)[0]
+encodeTest = face_recognition.face_encodings(imgTest)[0]
+cv2.rectangle(imgTest,(face_Loc_Test[3],face_Loc_Test[0]),(face_Loc_Test[1],face_Loc_Test[2]),(255,0,255),2)
+
+results = face_recognition.compare_faces([encodeShah],encodeTest)
+faceDis  = face_recognition.face_distance([encodeShah],encodeTest)
+print(results)
+print(faceDis)
+
+cv2.putText(imgTest,f'{ results} {round(faceDis[0],2)}',(50,50),cv2.FONT_HERSHEY_COMPLEX,1,(0,0,255),2)
+
+cv2.imshow(" Face_dectect ", imgShah)
+cv2.imshow(" Face_Test ", imgTest)
+cv2.waitKey(0)
+
