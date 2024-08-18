@@ -1,0 +1,80 @@
+import cv2
+import numpy as np
+import face_recognition
+import os
+from datetime import  datetime
+
+path = 'imagesource'
+images = []
+classNames = []
+myList = os.listdir(path)
+
+for cl in myList:
+    current_Img = cv2.imread(f'{path}/{cl}')
+    images.append(current_Img)
+    classNames.append(os.path.splitext(cl)[0])
+print(classNames)
+
+
+def find_encodings(images):
+    encodeList = [ ]
+    for img in images:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        encode = face_recognition.face_encodings(img)[0]
+        encodeList.append(encode)
+    return encodeList
+
+
+def markAttendance(name):
+    with open('Attendance.csv', 'r+') as f:
+        myDataList = f.readlines()
+        # print(myDataList)
+        nameList = []
+        for line in myDataList:
+            entry = line.split(',')
+            nameList.append(entry[0])
+        if name not in nameList:
+            now = datetime.now()
+            timeString = now.strftime('%H:%M:%S')
+            dateString = now.strftime('%d:%m:%y')
+            dayString = now.strftime('%A')
+            f.writelines(f'\n{name},{timeString},{dateString},{dayString}')
+
+
+encode_list_known = find_encodings(images)
+print('Encoding complete')
+
+cap = cv2.VideoCapture(0)
+while True:
+    success, img = cap.read()
+    img_Small = cv2.resize(img, (0, 0), None, 0.25, 0.25)
+    img_Small = cv2.cvtColor(img_Small,cv2.COLOR_BGR2RGB)
+    face_current_frame = face_recognition.face_locations(img_Small)
+    encodes_current_frame = face_recognition.face_encodings(img_Small,  face_current_frame)
+    for encodeFaces, faceLoc in zip(encodes_current_frame, face_current_frame):
+        matches = face_recognition.compare_faces(encode_list_known, encodeFaces)
+        faceDis = face_recognition.face_distance(encode_list_known, encodeFaces)
+        print(faceDis)
+        matchIndex = np.argmin(faceDis)
+
+        if matches[matchIndex]:
+            name = classNames[matchIndex].upper()
+            print(name)
+
+            y1, x2, y2, x1 = faceLoc
+            y1, x2, y2, x1 = y1*4, x2*4, y2*4, x1*4
+            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.rectangle(img, (x1,y2-35), (x2, y2), (0, 255, 0), cv2.FILLED)
+            cv2.putText(img, name, (x1+6, y2-6), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
+            markAttendance(name)
+
+    cv2.imshow(" Attendance Mark ", img)
+    if cv2.waitKey(1) == ord("q"):
+        break
+cap.release()
+
+
+
+
+
+
